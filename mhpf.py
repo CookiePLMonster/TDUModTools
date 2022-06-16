@@ -114,7 +114,7 @@ def unpack(file, output_dir='.'):
     with _fopen(file, 'rb') as f:
 
         # Read and parse the file header
-        (endianness, _, _, num_resources, _, res_table, files_table,
+        (endianness, _, _, num_resources, _, res_table, _,
          name_offsets_table, names_block_table) = _parseMHPFHeader(f)
 
         # Read the resources table and names
@@ -210,6 +210,49 @@ def pack(directory, output, *, hash_prime=DEFAULT_HASH_PRIME, big_endian=False):
         f.write(names)
 
 
+def scan(file, list_files=False):
+    with _fopen(file, 'rb') as f:
+
+        # Read and parse the file header
+        (endianness, version, total_size, num_resources, hash_prime, res_table,
+         _, name_offsets_table, names_block_table) = _parseMHPFHeader(f)
+
+        def displaySize(num):
+            def sizeofFmt(num, suffix='B'):
+                for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+                    if abs(num) < 1024.0:
+                        return f"{num:3.1f}{unit}{suffix}"
+                    num /= 1024.0
+                return f'{num:.1f}Yi{suffix}'
+
+            if num <= 1024:
+                return f'{num} bytes'
+            return f'{num} bytes ({sizeofFmt(num)})'
+
+        print('MHPF file attributes:')
+        print(
+            f'\tHeader: {"MHPF (little endian)" if endianness == "<" else "FPHM (big endian)"}')
+        print(f'\tVersion: {version}')
+        print(f'\tTotal size: {displaySize(total_size)}')
+        print(f'\tNumber of files: {num_resources}')
+        print(f'\tString hash prime: {hash_prime}')
+
+        if list_files:
+            print()
+            print('Files:')
+
+            resources = _getResourcesTable(
+                f, endianness, num_resources, res_table)
+            names = _getNamesTable(f, endianness, num_resources,
+                                   name_offsets_table, names_block_table)
+
+            # Sort the files by name for better readability
+            sorted_resources = sorted(
+                zip(resources, names), key=lambda x: x[1])
+            for res, name in sorted_resources:
+                print(f'{name}, {displaySize(res.size)}')
+
+
 def pathHash(path, prime=DEFAULT_HASH_PRIME):
     result = 0
     separator = True
@@ -252,6 +295,14 @@ if __name__ == '__main__':
                              help='build a big endian archive (do NOT use for TDU, currently not known if big endian archives were ever used)')
     parser_pack.set_defaults(func=pack)
 
+    parser_scan = subparsers.add_parser(
+        'scan', help='List the contents of the MHPF file')
+    parser_scan.add_argument('file', metavar='PCK',
+                             type=str, help='path to the input PCK file')
+    parser_scan.add_argument('-l', '--list', dest='list_files', action='store_true',
+                             help='list the archive contents on top of listing the attributes')
+    parser_scan.set_defaults(func=scan)
+
     arguments = parser.parse_args()
     func = arguments.func
 
@@ -264,3 +315,8 @@ if __name__ == '__main__':
     del args_var['func']
 
     func(**args_var)
+
+    if func is scan:
+        if not arguments.list_files:
+            print()
+            print('-l/--list was not specified. If you need to list the archive contents, re-run the script with this argument added.')

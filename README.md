@@ -1,6 +1,6 @@
 # TDU Mod Tools
 
-A collection of Python tools for the PS2/PS2 versions of Test Drive Unlimited.
+A collection of Python tools for the PS2/PSP versions of Test Drive Unlimited.
 
 ## MHPF Tool
 An unpacker/repacker for the Melbourne House Pack File (`.PCK`) format. Inspired by the groundwork laid out in [mhpf-tools](https://github.com/christorrella/mhpf-tools).
@@ -13,6 +13,9 @@ An unpacker/repacker for the Melbourne House Pack File (`.PCK`) format. Inspired
   * `-hp/--hash-prime [PRIME]` - specify a custom prime number for the internal string hash (default 31). You shouldn't need this.
   * `-be/--big-endian` - build a big endian archive instead of a default little endian. No games are known to use BE archives,
     but TDU checks (and rejects) those, so they technically exist.
+* `mhpf.py scan PCK [-l/--list]` \
+  Lists the attributes of a specified MHPF file.
+  * `-l/--list` - also list the archive contents on top of listing attributes.
 
 ### To-do
 * Strict mode for an unpacker, validating all header fields, even those unused by the game.
